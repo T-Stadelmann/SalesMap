@@ -1,0 +1,41 @@
+version:  '3'
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - frontend:/frontend
+      - /nginx:/etc/nginx/conf.d
+      - static-files:/static-files
+      - media-files:/media-files
+      - /etc/letsencrypt:/etc/letsencrypt
+
+  backend:
+    image: registry.image:latest
+    restart: always
+    env_file:
+      - ./envs/prod.env
+    command: 'sh /scripts/run.sh'
+    volumes:
+      - frontend:/frontend/build
+      - media-files:/media-files
+      - static-files:/static-files
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    env_file:
+      - ./envs/prod.env
+
+volumes:
+  media-files:
+  static-files:
+  postgres:
+  frontend:

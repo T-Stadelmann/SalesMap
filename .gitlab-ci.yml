@@ -1,0 +1,71 @@
+stages:
+  - pull
+  - build
+  - lint
+  - push
+  - cleanup
+  - deploy
+
+before_script:
+  - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" "$CI_REGISTRY"
+
+pull:
+  tags:
+    - salesmap
+  stage: pull
+  script:
+    - docker pull "$CI_REGISTRY_IMAGE":latest
+
+build:
+  tags:
+    - salesmap
+  stage: build
+  script:
+    - docker build --tag="$CI_PIPELINE_ID":"$CI_COMMIT_REF_NAME" --cache-from="$CI_REGISTRY_IMAGE":latest .
+
+lint:
+  stage: lint
+  only:
+    - master
+  script:
+    - export CI_PIPELINE_ID=$CI_PIPELINE_ID
+    - export CI_BUILD_REF_NAME=$CI_COMMIT_REF_NAME
+    - docker-compose -p "$CI_PIPELINE_ID" -f docker-compose.ci.yml run app flake8 .
+
+push image:
+  tags:
+    - salesmap
+  stage: push
+  only:
+    - master
+    - tags
+  script:
+    - docker tag "$CI_PIPELINE_ID":"$CI_COMMIT_REF_NAME" "$CI_REGISTRY_IMAGE":"$CI_COMMIT_REF_NAME"
+    - docker push "$CI_REGISTRY_IMAGE":"$CI_COMMIT_REF_NAME"
+
+push latest:
+  tags:
+    - salesmap
+  stage: push
+  script:
+    - docker tag "$CI_PIPELINE_ID":"$CI_COMMIT_REF_NAME" "$CI_REGISTRY_IMAGE":latest
+    - docker push "$CI_REGISTRY_IMAGE":latest
+
+cleanup:
+  tags:
+    - salesmap
+  stage: cleanup
+  when: always
+  script:
+    - docker rmi -f "$CI_PIPELINE_ID":"$CI_COMMIT_REF_NAME"
+    - docker-compose -p "$CI_PIPELINE_ID" -f docker-compose.ci.yml down --remove-orphans
+
+deploy:
+  tags:
+    - salesmap
+  stage: deploy
+  when: manual
+  script:
+    - docker-compose -f docker-compose.deploy.yml pull
+    - docker-compose -f docker-compose.deploy.yml down --remove-orphans
+    - docker-compose -f docker-compose.deploy.yml up -d

@@ -1,0 +1,24 @@
+name: salesmap
+
+dependencies:
+  - python=3.6
+  - psycopg2
+  - pip:
+    - Django
+    - djangorestframework
+    - markdown
+    - djangorestframework_simplejwt
+    - coreapi
+    - psycopg2-binary
+    - gunicorn
+    - django-cors-headers
+    - django-import-export==2.0.2
+    - geopy
+    - django-cities-light
+    - django-language-field
+    - django-money
+    - numpy
+    - tablib==1.1.0
+    - xlrd==1.2.0
+    - xlwt==1.3.0
+
